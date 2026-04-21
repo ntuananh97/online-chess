@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum GameResult {
+  WHITE_WIN
+  BLACK_WIN
+  DRAW
+  ONGOING
+}
+
+enum EndReason {
+  CHECKMATE
+  STALEMATE
+  TIMEOUT
+  RESIGNATION
+  DRAW_AGREEMENT
+  INSUFFICIENT_MATERIAL
+}
+
+enum PieceColor {
+  WHITE
+  BLACK
+}
+
+model User {
+  id           String @id @default(uuid())
+  username     String @unique
+  email        String @unique
+  passwordHash String
+  eloRating    Int    @default(1200)
+
+  gamesAsWhite Game[] @relation("WhitePlayer")
+  gamesAsBlack Game[] @relation("BlackPlayer")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eloRating])
+}
+
+model Game {
+  id          String     @id @default(uuid())
+  slug        String     @unique
+  initialTime Int        @default(600)
+  increment   Int        @default(0)
+  status      GameStatus @default(WAITING)
+  result      GameResult @default(ONGOING)
+  endReason   EndReason?
+  currentFen  String     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  pgn         String?    @db.Text
+
+  whitePlayerId String?
+  whitePlayer   User? @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+
+  blackPlayerId String?
+  blackPlayer   User? @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+
+  ratingSnapshotWhite Int?
+  ratingSnapshotBlack Int?
+  moves               Move[]
+  startTime           DateTime?
+  endTime             DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status])
+  @@index([slug])
+}
+
+model Move {
+  id          String     @id @default(uuid())
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  moveNumber  Int
+  playerColor PieceColor
+  notation    String
+  fenBefore   String
+  fenAfter    String
+  timeLeft    Int
+  createdAt   DateTime   @default(now())
+
+  @@index([gameId, moveNumber])
+}
