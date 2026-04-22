@@ -39,7 +39,6 @@ model User {
   username     String @unique
   email        String @unique
   passwordHash String
-  eloRating    Int    @default(1200)
 
   gamesAsWhite Game[] @relation("WhitePlayer")
   gamesAsBlack Game[] @relation("BlackPlayer")
@@ -47,28 +46,28 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([eloRating])
 }
 
 model Game {
   id          String     @id @default(uuid())
-  slug        String     @unique
-  initialTime Int        @default(600)
-  increment   Int        @default(0)
+  slug        String     @unique // Room ID shared with opponent
+  initialTime Int        @default(600) // time in seconds
+  increment   Int        @default(0) // time in seconds per move
   status      GameStatus @default(WAITING)
-  result      GameResult @default(ONGOING)
+  result      GameResult @default(ONGOING) // result of the game
   endReason   EndReason?
-  currentFen  String     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  pgn         String?    @db.Text
 
+  // FEN of the board
+  currentFen  String     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Current FEN of the board
+  pgn         String?    @db.Text // PGN of the game
+
+  // Players
   whitePlayerId String?
   whitePlayer   User? @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
 
   blackPlayerId String?
   blackPlayer   User? @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
 
-  ratingSnapshotWhite Int?
-  ratingSnapshotBlack Int?
   moves               Move[]
   startTime           DateTime?
   endTime             DateTime?
