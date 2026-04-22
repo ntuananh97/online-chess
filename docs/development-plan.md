@@ -23,15 +23,7 @@
 
 **Goal:** Ensure chess logic works perfectly in offline/local mode before moving to networked play.
 
-### Build a Chess.js Adapter (Frontend and Backend)
 
-- Create an interface/class wrapper around `chess.js`.
-- This adapter should handle:
-  - FEN loading
-  - Move validation
-  - Checkmate/stalemate detection
-  - PGN export
-- Keep the adapter code shared or mirrored across both Next.js and NestJS.
 
 ### Integrate Chessboard UI (Frontend)
 
