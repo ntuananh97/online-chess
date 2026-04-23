@@ -12,8 +12,6 @@
 
 ### Database Design (Prisma + PostgreSQL)
 
-
-
 ### Frontend State Management Preparation
 
 - Initialize a lightweight Zustand store for guest session data (`Nickname`, `GuestID`).
@@ -21,21 +19,22 @@
 
 ## Sprint 2: Core Chess Engine
 
-**Goal:** Ensure chess logic works perfectly in offline/local mode before moving to networked play.
+**Epic 1: Khởi tạo Component Bàn cờ (Frontend)**
 
+- **Tạo** `ChessBoardContainer`**:** Khởi tạo trực tiếp instance của game bên trong Component hoặc Custom Hook (VD: `const [game, setGame] = useState(new Chess());`).
+- **Gắn** `react-chessboard`**:** Nhúng thư viện vào và truyền state hiện tại qua prop (VD: `position={game.fen()}`).
 
+**Epic 2: Xử lý Tương tác & Luật chơi**
 
-### Integrate Chessboard UI (Frontend)
+- **Logic Kéo thả (Drag & Drop):** Khi người dùng thả quân (`onPieceDrop`), gọi trực tiếp `game.move({ from, to, promotion })`.
+- **Validation:** Thư viện `chess.js` sẽ tự xử lý. Nếu `game.move()` trả về `null` (nước đi sai luật), bạn chỉ cần return `false` để `react-chessboard` tự búng quân cờ về vị trí cũ (snapback).
+- **Xử lý Phong cấp (Promotion):** Hiển thị UI chọn quân khi Tốt đi đến hàng cuối. Tham số `promotion` mặc định là `'q'` (Hậu) nếu người dùng đánh nhanh.
+- **Kiểm tra Trạng thái Game:** Sau mỗi nước đi hợp lệ, check ngay các cờ: `game.isCheckmate()`, `game.isStalemate()`, `game.isDraw()` để trigger hiển thị Dialog kết quả.
 
-- Wrap `react-chessboard` into an isolated component.
-- Develop local play flow (both sides on one client) for end-to-end validation:
-  - Drag and drop move
-  - Validate with adapter
-  - Update FEN
-  - Re-render board
-- Improve UX with sound effects (move, capture, check) and valid-square highlighting.
+**Epic 3: Trải nghiệm người dùng (UX) & Polish**
 
-## Sprint 3: Real-time and Multiplayer
+- **Highlight ô cờ:** Dùng hàm `game.moves({ verbose: true })` để lấy danh sách các ô có thể đi tới của một quân cờ đang được chọn, từ đó truyền prop custom style vào `react-chessboard` để hiện các chấm tròn chỉ đường.
+- **Âm thanh:** Dựa vào object trả về của `game.move()` (nếu có property `captured` hoặc `san` chứa dấu `+`/`#`) để play âm thanh ăn quân, chiếu tướng, hoặc kết thúc ván tương ứng.Sprint 3: Real-time and Multiplayer
 
 **Goal:** Bring the board online with strict state synchronization. This is the most complex sprint.
 
@@ -83,3 +82,4 @@
 
 - Implement basic Elo rating update logic on game completion.
 - Build a leaderboard page using `shadcn/ui` Table.
+

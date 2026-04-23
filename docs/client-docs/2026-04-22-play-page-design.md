@@ -1,7 +1,7 @@
 # Play Page Design — `/play/[id]`
 
-**Date:** 2026-04-22  
-**Scope:** MVP UI + local move validation. No socket/backend integration.
+**Date:** 2026-04-23  
+**Scope:** MVP UI + local move validation with drag-drop and click-to-move. No socket/backend integration.
 
 ---
 
@@ -18,7 +18,8 @@ client/src/
 ├── app/
 │   └── play/
 │       └── [id]/
-│           └── page.tsx          # Route entry, reads [id] from params, composes layout
+│           ├── page.tsx          # Server route entry, reads [id] from params
+│           └── PlayPageClient.tsx # Client layout composition + UI state wiring
 ├── components/
 │   └── play/
 │       ├── PlayBoard.tsx         # Only file that imports react-chessboard
@@ -61,11 +62,23 @@ All `chess.js` imports are confined to this file.
   moves: string[]             // Move history in SAN notation (e.g. ["e4", "e5", "Nf3"])
   orientation: "white" | "black"  // Whose perspective the board is rendered from
   makeMove: (from: string, to: string) => boolean
+  optionSquares: Record<string, React.CSSProperties> // Highlight styles for selectable/target squares
+  onSquareClick: (args: SquareHandlerArgs) => void   // Click-to-move handler for react-chessboard
   // makeMove returns true on a legal move (updates state), false on illegal (no state change)
 }
 ```
 
-Internally holds a `Chess` instance in a `useRef`. On each legal `makeMove` call it updates `position` and appends the SAN string to `moves`. Orientation starts as `"white"` for MVP (no flip control needed yet).
+Internally holds a `Chess` instance in state and tracks transient click-to-move UI state:
+
+- `moveFrom`: selected source square (empty when no active selection)
+- `optionSquares`: computed square highlight map for legal targets and selected source square
+
+Move handling rules:
+
+- `makeMove(from, to)` handles drag-drop moves and, on success, updates `position` + appends SAN to `moves`.
+- `onSquareClick` supports click-to-move by selecting a piece, showing legal destinations, validating target click, then committing the move.
+- On successful move, selection/highlights are cleared.
+- On invalid target click, the hook either reselects a newly clicked movable piece or clears selection when no legal options exist.
 
 ### `PlayBoard`
 
@@ -76,11 +89,14 @@ interface PlayBoardProps {
   position: string
   orientation: "white" | "black"
   onMove: (from: string, to: string) => boolean
+  optionSquares: Record<string, React.CSSProperties>
+  onSquareClick: (args: SquareHandlerArgs) => void
 }
 ```
 
 - Passes `position` as the `position` prop to `Chessboard`.
 - Wires drag-drop via `onPieceDrop` → calls `onMove(from, to)` → returns the boolean directly so react-chessboard snaps the piece back on `false`.
+- Wires click-to-move via `onSquareClick` and applies `optionSquares` through `squareStyles`.
 - No internal state; purely controlled.
 
 ### `MovesPanel`
@@ -110,6 +126,10 @@ MVP renders a single "Moves" tab. The tab bar design leaves visual room to add m
 ### `page.tsx`
 
 - Receives `params: { id: string }` from Next.js App Router.
+- Renders `PlayPageClient` with `roomId`.
+
+### `PlayPageClient.tsx`
+
 - Calls `useChessGame()` to get all state and actions.
 - Manages `activeTab` state for mobile tab bar.
 - Composes the full layout from the components above.
@@ -121,12 +141,15 @@ MVP renders a single "Moves" tab. The tab bar design leaves visual room to add m
 
 ```
 page.tsx
-  └── useChessGame()   ←  chess.js (Chess instance in useRef)
+  └── PlayPageClient
+        └── useChessGame()   ←  chess.js
         ├── position: FEN string
         ├── moves: SAN[]
-        └── makeMove(from, to) → boolean
+        ├── makeMove(from, to) → boolean
+        ├── optionSquares: square highlight styles
+        └── onSquareClick(args): click-to-move controller
 
-  ├── <PlayBoard position onMove orientation />
+  ├── <PlayBoard position onMove orientation optionSquares onSquareClick />
   └── <MovesPanel moves />          (desktop panel or mobile tab content)
       <MobileTabBar ... />          (mobile only)
 ```
@@ -141,6 +164,9 @@ No props are passed downward beyond these direct connections. Components do not 
 |--------|--------|
 | Player drags a piece to a legal square | `makeMove` returns `true`, FEN updates, SAN appended to moves list |
 | Player drags a piece to an illegal square | `makeMove` returns `false`, piece snaps back, no state change |
+| Player clicks a movable piece | Source square is highlighted, legal destinations are highlighted |
+| Player clicks a valid destination | Move is committed, FEN/SAN update, highlights are cleared |
+| Player clicks an invalid destination | If clicked square has another movable piece, selection switches; otherwise highlights clear |
 | Board starts | Standard starting position (FEN), moves list empty |
 | White moves, then black moves | Turns alternate automatically via `chess.js` internal turn tracking |
 
@@ -163,6 +189,7 @@ No props are passed downward beyond these direct connections. Components do not 
 
 1. Navigating to `/play/abc123` renders without errors; room ID "abc123" is visible in the header.
 2. Both players can make moves on the same board; illegal moves are rejected and pieces snap back.
-3. Each legal move appears immediately in the moves panel as SAN notation.
-4. On mobile, the tab bar appears below the board and the moves list is accessible via the Moves tab.
-5. No direct `chess.js` imports outside `useChessGame.ts`; no direct `react-chessboard` imports outside `PlayBoard.tsx`.
+3. Click-to-move works: selecting a piece shows legal targets, valid target click commits move, invalid click does not corrupt state.
+4. Each legal move appears immediately in the moves panel as SAN notation.
+5. On mobile, the tab bar appears below the board and the moves list is accessible via the Moves tab.
+6. No direct `chess.js` imports outside `useChessGame.ts`; no direct `react-chessboard` imports outside `PlayBoard.tsx`.

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { MobileTabBar } from '@/components/play/MobileTabBar'
 import { MovesPanel } from '@/components/play/MovesPanel'
 import { PlayBoard } from '@/components/play/PlayBoard'
+import { CheckToast } from '@/components/play/CheckToast'
+import { GameResultModal } from '@/components/play/GameResultModal'
 import { useChessGame } from '@/hooks/useChessGame'
 
 interface PlayPageClientProps {
@@ -11,7 +13,16 @@ interface PlayPageClientProps {
 }
 
 export function PlayPageClient({ roomId }: PlayPageClientProps) {
-  const { position, moves, orientation, makeMove } = useChessGame()
+  const {
+    position,
+    moves,
+    orientation,
+    makeMove,
+    optionSquares,
+    onSquareClick,
+    gameStatus,
+    resetGame,
+  } = useChessGame()
   const [activeTab, setActiveTab] = useState<'moves'>('moves')
 
   return (
@@ -23,8 +34,17 @@ export function PlayPageClient({ roomId }: PlayPageClientProps) {
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col items-center justify-start overflow-y-auto p-4 lg:justify-center">
-          <div className="aspect-square w-full max-w-[min(calc(100dvh-8rem),600px)]">
-            <PlayBoard position={position} orientation={orientation} onMove={makeMove} />
+          <div className="w-full max-w-[min(calc(100dvh-8rem),600px)]">
+            <CheckToast gameStatus={gameStatus} />
+            <div className="aspect-square w-full">
+              <PlayBoard
+                position={position}
+                orientation={orientation}
+                onMove={makeMove}
+                optionSquares={optionSquares}
+                onSquareClick={onSquareClick}
+              />
+            </div>
           </div>
 
           <div className="mt-4 w-full max-w-[min(calc(100dvh-8rem),600px)] lg:hidden">
@@ -46,6 +66,8 @@ export function PlayPageClient({ roomId }: PlayPageClientProps) {
           </div>
         </aside>
       </div>
+
+      <GameResultModal gameStatus={gameStatus} onPlayAgain={resetGame} />
     </div>
   )
 }
