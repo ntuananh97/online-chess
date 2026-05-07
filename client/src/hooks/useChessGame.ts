@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Chess, Square } from "chess.js";
 import { SquareHandlerArgs } from "react-chessboard";
+import { audio } from "@/lib/audio/AudioManager";
+import { AudioEvent } from "@/lib/audio/audioTypes";
+import { soundsForSuccessfulMove } from "@/lib/audio/chessAudioAdapter";
 
 export type GameOrientation = "white" | "black";
 export type GameStatus =
@@ -65,6 +68,7 @@ export function useChessGame(): UseChessGameReturn {
       const move = promotion ? { from, to, promotion } : { from, to };
       const result = chess.move(move);
       if (!result) {
+        audio.play(AudioEvent.ILLEGAL);
         return false;
       }
 
@@ -75,10 +79,16 @@ export function useChessGame(): UseChessGameReturn {
       setMoveFrom("");
       setOptionSquares({});
       setPendingPromotion(null);
-      setGameStatus(detectStatus(chess));
+      const nextStatus = detectStatus(chess);
+      setGameStatus(nextStatus);
+
+      const eventSounds = soundsForSuccessfulMove(result, nextStatus);
+      console.log("🚀 ~ executeMove ~ eventSounds:", eventSounds)
+      eventSounds.forEach((event) => audio.play(event));
 
       return true;
     } catch {
+      audio.play(AudioEvent.ILLEGAL);
       return false;
     }
   }
