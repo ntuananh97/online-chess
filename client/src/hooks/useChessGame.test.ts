@@ -6,6 +6,17 @@ import { detectStatus, useChessGame } from './useChessGame'
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 describe('useChessGame', () => {
+  function playMoves(
+    result: { current: { makeMove: (from: string, to: string) => boolean } },
+    moves: Array<[string, string]>,
+  ) {
+    for (const [from, to] of moves) {
+      act(() => {
+        result.current.makeMove(from, to)
+      })
+    }
+  }
+
   it('starts with the standard opening position', () => {
     const { result } = renderHook(() => useChessGame())
     expect(result.current.position).toBe(STARTING_FEN)
@@ -77,6 +88,92 @@ describe('useChessGame', () => {
     expect(ok).toBe(false)
   })
 
+  it('sets pendingPromotion and does not move immediately when promotion is required', () => {
+    const { result } = renderHook(() => useChessGame())
+
+    playMoves(result, [
+      ['a2', 'a4'],
+      ['h7', 'h5'],
+      ['a4', 'a5'],
+      ['h5', 'h4'],
+      ['a5', 'a6'],
+      ['h4', 'h3'],
+      ['a6', 'b7'],
+      ['h3', 'g2'],
+    ])
+
+    const beforePromotion = result.current.position
+    let ok = false
+    act(() => {
+      ok = result.current.makeMove('b7', 'c8')
+    })
+
+    expect(ok).toBe(false)
+    expect(result.current.position).toBe(beforePromotion)
+    expect(result.current.pendingPromotion).toEqual({
+      from: 'b7',
+      to: 'c8',
+      color: 'white',
+    })
+  })
+
+  it('confirmPromotion executes pending move with selected piece', () => {
+    const { result } = renderHook(() => useChessGame())
+
+    playMoves(result, [
+      ['a2', 'a4'],
+      ['h7', 'h5'],
+      ['a4', 'a5'],
+      ['h5', 'h4'],
+      ['a5', 'a6'],
+      ['h4', 'h3'],
+      ['a6', 'b7'],
+      ['h3', 'g2'],
+    ])
+
+    act(() => {
+      result.current.makeMove('b7', 'c8')
+    })
+
+    let ok = false
+    act(() => {
+      ok = result.current.confirmPromotion('n')
+    })
+
+    const promotedPosition = new Chess(result.current.position)
+    expect(ok).toBe(true)
+    expect(promotedPosition.get('c8')).toMatchObject({ type: 'n', color: 'w' })
+    expect(result.current.pendingPromotion).toBeNull()
+    expect(result.current.moves[result.current.moves.length - 1]).toContain('=N')
+  })
+
+  it('cancelPromotion clears pending promotion and keeps board unchanged', () => {
+    const { result } = renderHook(() => useChessGame())
+
+    playMoves(result, [
+      ['a2', 'a4'],
+      ['h7', 'h5'],
+      ['a4', 'a5'],
+      ['h5', 'h4'],
+      ['a5', 'a6'],
+      ['h4', 'h3'],
+      ['a6', 'b7'],
+      ['h3', 'g2'],
+    ])
+
+    const beforePromotion = result.current.position
+    act(() => {
+      result.current.makeMove('b7', 'c8')
+    })
+
+    act(() => {
+      result.current.cancelPromotion()
+    })
+
+    expect(result.current.pendingPromotion).toBeNull()
+    expect(result.current.position).toBe(beforePromotion)
+  })
+
   it('gameStatus starts as playing', () => {
     const { result } = renderHook(() => useChessGame())
     expect(result.current.gameStatus).toEqual({ type: 'playing' })
@@ -119,6 +216,7 @@ describe('useChessGame', () => {
     expect(result.current.position).toBe(STARTING_FEN)
     expect(result.current.moves).toEqual([])
     expect(result.current.gameStatus).toEqual({ type: 'playing' })
+    expect(result.current.pendingPromotion).toBeNull()
   })
 })
 

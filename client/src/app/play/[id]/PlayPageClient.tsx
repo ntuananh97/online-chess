@@ -18,6 +18,9 @@ export function PlayPageClient({ roomId }: PlayPageClientProps) {
     moves,
     orientation,
     makeMove,
+    pendingPromotion,
+    confirmPromotion,
+    cancelPromotion,
     optionSquares,
     onSquareClick,
     gameStatus,
@@ -41,6 +44,9 @@ export function PlayPageClient({ roomId }: PlayPageClientProps) {
                 position={position}
                 orientation={orientation}
                 onMove={makeMove}
+                pendingPromotion={pendingPromotion}
+                onPromotionSelect={confirmPromotion}
+                onPromotionCancel={cancelPromotion}
                 optionSquares={optionSquares}
                 onSquareClick={onSquareClick}
               />
