@@ -38,14 +38,14 @@
 
 **Goal:** Bring the board online with strict state synchronization. This is the most complex sprint.
 
-### Set Up Socket.io Gateway (NestJS)
+### *Set Up Socket.io Gateway (NestJS)*
 
-- Configure WebSockets in `GameModule`.
-- Implement room lifecycle:
-  - Create Room
-  - Join Room
-  - Leave Room
-- Manage connection mapping by `GuestID`.
+- *Configure WebSockets in* `GameModule`*.*
+- *Implement room lifecycle:*
+  - *Create Room*
+  - *Join Room*
+  - *Leave Room*
+- *Manage connection mapping by* `GuestID`*.*
 
 ### Synchronize Moves and Game State (Server-Authoritative)
 
